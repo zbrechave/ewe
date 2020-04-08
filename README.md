@@ -1,5 +1,5 @@
 # ewe
 QrLogin example by golang
 
-
-go run main.go
+# 运行
+    go run main.go

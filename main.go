@@ -10,9 +10,9 @@ token删除
 */
 
 import (
+	"github.com/chenweivip/ewe/utils"
 	"github.com/skip2/go-qrcode"
 	"golang.org/x/net/websocket"
-	"github.com/chenweivip/ewe/utils"
 
 	"fmt"
 	"html/template"
@@ -21,8 +21,10 @@ import (
 	"time"
 )
 
-const PORT = ":7777"
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const (
+	PORT = ":7777"
+	LETTERBYTES = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+)
 
 type Token struct {
 	Name string
@@ -39,7 +41,7 @@ var tokenarr = make(map[string]LoginReq) //map 一个token对象 token{status, s
 func gentoken() (token string){
 	b := make([]byte, 16)
 	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+		b[i] = LETTERBYTES[rand.Intn(len(LETTERBYTES))]
 	}
 	tokenarr[string(b)] = LoginReq{Status: 1}
 	return string(b)
@@ -50,18 +52,16 @@ func showhandler(w http.ResponseWriter, r *http.Request) {
 	//生成随机token，生成二维码， 返回给客户端
 	var png []byte
 
-	r.ParseForm()
+	err := r.ParseForm()
+	if err != nil {fmt.Printf("Error: %s", err.Error())}
+
 	token := r.Form["token"][0]
 	w.Header().Set("Content-Type", "image/png")
 
 	ip, err := utils.ExternalIP()
-	if err != nil {
-		fmt.Printf("Error: %s", err.Error())
-	}
+	if err != nil {fmt.Printf("Error: %s", err.Error())}
 
-	png, err = qrcode.Encode(
-		"http://" + ip.String() + PORT + "/tokenlogin?token=" + token ,
-		qrcode.Medium, 256)
+	png, err = qrcode.Encode("http://" + ip.String() + PORT + "/tokenlogin?token=" + token , qrcode.Medium, 256)
 
 	if err != nil {
 		fmt.Printf("Error: %s", err.Error())} else {
@@ -89,7 +89,7 @@ func tokenlogin(w http.ResponseWriter, r *http.Request) {
 
 func qrpolling(ws *websocket.Conn){
 	var err error
-	//check token and add global Connmaps
+
 	r := ws.Request()
 	_ = r.ParseForm()
 	token := r.Form["token"][0]
